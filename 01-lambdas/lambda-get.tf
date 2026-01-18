@@ -2,13 +2,15 @@
 # File: lambda_get.tf
 # ================================================================================
 # Purpose:
-#   Deploys the "Responder" Lambda function that retrieves key
-#   generation results from DynamoDB. This function is invoked by
-#   the API Gateway GET /result/{id} route.
+#   Deploys the "Get Note" Lambda function that retrieves a single note
+#   from DynamoDB. This function is intended to be invoked by an API
+#   Gateway route such as GET /notes/{id}.
 #
 # Notes:
 #   - Uses Python 3.11 runtime.
-#   - Reads from the DynamoDB table created for keygen results.
+#   - Reads from the DynamoDB "notes" table defined in dynamodb.tf.
+#   - Demo mode uses owner="global" in code; the table access is still
+#     GetItem against the table ARN.
 # ================================================================================
 
 # --------------------------------------------------------------------------------
@@ -19,14 +21,14 @@
 #   policy allows the Lambda service to assume this role.
 # --------------------------------------------------------------------------------
 resource "aws_iam_role" "lambda_get_role" {
-  name = "lambda-get-role"
+  name = "notes-get-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
       Principal = { Service = "lambda.amazonaws.com" }
-      Effect = "Allow"
+      Effect    = "Allow"
     }]
   })
 }
@@ -47,11 +49,11 @@ resource "aws_iam_role_policy_attachment" "lambda_get_basic" {
 # RESOURCE: aws_iam_role_policy.lambda_get_dynamo
 # --------------------------------------------------------------------------------
 # Description:
-#   Inline IAM policy granting DynamoDB read access to the KeyGen
-#   results table. Required for retrieving stored key pairs.
+#   Inline IAM policy granting DynamoDB read access to the Notes table.
+#   Required for retrieving notes using (owner, id).
 # --------------------------------------------------------------------------------
 resource "aws_iam_role_policy" "lambda_get_dynamo" {
-  name = "lambda-get-dynamo"
+  name = "notes-get-dynamo"
   role = aws_iam_role.lambda_get_role.id
 
   policy = jsonencode({
@@ -59,7 +61,7 @@ resource "aws_iam_role_policy" "lambda_get_dynamo" {
     Statement = [{
       Effect   = "Allow",
       Action   = ["dynamodb:GetItem"],
-      Resource = aws_dynamodb_table.keygen_results.arn
+      Resource = aws_dynamodb_table.notes.arn
     }]
   })
 }
@@ -68,12 +70,11 @@ resource "aws_iam_role_policy" "lambda_get_dynamo" {
 # RESOURCE: aws_lambda_function.lambda_get
 # --------------------------------------------------------------------------------
 # Description:
-#   Deploys the "keygen-get" Lambda function. The function reads
-#   DynamoDB entries using correlation_id and returns results to
-#   API Gateway.
+#   Deploys the "notes-get" Lambda function. The function reads a single
+#   note from DynamoDB using owner + id and returns it to API Gateway.
 # --------------------------------------------------------------------------------
 resource "aws_lambda_function" "lambda_get" {
-  function_name    = "keygen-get"
+  function_name    = "notes-get"
   role             = aws_iam_role.lambda_get_role.arn
   runtime          = "python3.11"
   handler          = "get.lambda_handler"
@@ -83,7 +84,7 @@ resource "aws_lambda_function" "lambda_get" {
 
   environment {
     variables = {
-      RESULTS_TABLE = aws_dynamodb_table.keygen_results.name
+      NOTES_TABLE_NAME = aws_dynamodb_table.notes.name
     }
   }
 }
@@ -94,6 +95,14 @@ resource "aws_lambda_function" "lambda_get" {
 # Description:
 #   Packages Lambda source code from the local "code" directory
 #   into a ZIP archive for deployment.
+#
+# Expected code layout:
+#   code/
+#     get.py
+#     list.py
+#     create.py
+#     update.py
+#     delete.py
 # --------------------------------------------------------------------------------
 data "archive_file" "lambdas_zip" {
   type        = "zip"
