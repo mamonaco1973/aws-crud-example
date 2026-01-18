@@ -78,7 +78,7 @@ resource "aws_iam_role_policy" "lambda_list_dynamo" {
 resource "aws_lambda_function" "lambda_list" {
   function_name    = "list-notes"
   role             = aws_iam_role.lambda_list_role.arn
-  runtime          = "python3.11"
+  runtime          = "python3.14"
   handler          = "list.lambda_handler"
   filename         = data.archive_file.lambdas_zip.output_path
   source_code_hash = data.archive_file.lambdas_zip.output_base64sha256
