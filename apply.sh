@@ -32,42 +32,42 @@ terraform apply -auto-approve
 
 cd .. || exit
 
-# # --------------------------------------------------------------------------------
-# # BUILD SIMPLE WEB APPLICATION
-# # --------------------------------------------------------------------------------
-# # Creates a static web client that communicates with the deployed API
-# # Gateway. Substitutes the API URL into the HTML template.
-# # --------------------------------------------------------------------------------
-# API_ID=$(aws apigatewayv2 get-apis \
-#   --query "Items[?Name=='keygen-api'].ApiId" \
-#   --output text)
+# --------------------------------------------------------------------------------
+# BUILD SIMPLE WEB APPLICATION
+# --------------------------------------------------------------------------------
+# Creates a static web client that communicates with the deployed API
+# Gateway. Substitutes the API URL into the HTML template.
+# --------------------------------------------------------------------------------
+API_ID=$(aws apigatewayv2 get-apis \
+  --query "Items[?Name=='notes-api'].ApiId" \
+  --output text)
 
-# if [[ -z "${API_ID}" || "${API_ID}" == "None" ]]; then
-#   echo "ERROR: No API found with name 'keygen-api'"
-#   exit 1
-# fi
+if [[ -z "${API_ID}" || "${API_ID}" == "None" ]]; then
+  echo "ERROR: No API found with name 'notes-api'"
+  exit 1
+fi
 
-# URL=$(aws apigatewayv2 get-api \
-#   --api-id "${API_ID}" \
-#   --query "ApiEndpoint" \
-#   --output text)
+URL=$(aws apigatewayv2 get-api \
+  --api-id "${API_ID}" \
+  --query "ApiEndpoint" \
+  --output text)
 
-# export API_BASE="${URL}"
-# echo "NOTE: API Gateway URL - ${API_BASE}"
+export API_BASE="${URL}"
+echo "NOTE: API Gateway URL - ${API_BASE}"
 
-# echo "NOTE: Building Simple Web Application..."
+echo "NOTE: Building Simple Web Application..."
 
-# cd 04-webapp || { echo "ERROR: 04-webapp directory missing."; exit 1; }
+cd 02-webapp || { echo "ERROR: 02-webapp directory missing."; exit 1; }
 
-# envsubst '${API_BASE}' < index.html.tmpl > index.html || {
-#   echo "ERROR: Failed to generate index.html file. Exiting."
-#   exit 1
-# }
+envsubst '${API_BASE}' < index.html.tmpl > index.html || {
+  echo "ERROR: Failed to generate index.html file. Exiting."
+  exit 1
+}
 
-# terraform init
-# terraform apply -auto-approve
+terraform init
+terraform apply -auto-approve
 
-# cd .. || exit
+cd .. || exit
 
 # --------------------------------------------------------------------------------
 # BUILD VALIDATION
