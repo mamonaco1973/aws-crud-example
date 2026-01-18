@@ -1,83 +1,142 @@
 #!/bin/bash
-# ================================================================================================
+# ===============================================================================
 # File: validate.sh
-# ================================================================================================
+# ===============================================================================
+# Purpose:
+#   Validate the Notes API by exercising all CRUD endpoints:
+#     - POST   /notes        (create notes)
+#     - GET    /notes        (list notes)
+#     - GET    /notes/{id}   (get note)
+#     - PUT    /notes/{id}   (update note)
+#     - DELETE /notes/{id}   (delete note)
+#
+# Requirements:
+#   - aws CLI
+#   - curl
+#   - jq
+#
+# Notes:
+#   - Assumes an HTTP API named "notes-api"
+#   - Owner is hardcoded to "global" in Lambda logic
+# ===============================================================================
 
-# set -euo pipefail
-# export AWS_DEFAULT_REGION="us-east-1"
+set -euo pipefail
+export AWS_DEFAULT_REGION="us-east-1"
 
-# # -----------------------------------------------------------------------------------------------
-# # Step 1: Discover API Gateway endpoint
-# # -----------------------------------------------------------------------------------------------
-# echo "NOTE: Locating API Gateway endpoint..."
+# ------------------------------------------------------------------------------
+# Step 1: Discover API Gateway endpoint
+# ------------------------------------------------------------------------------
+echo "NOTE: Locating API Gateway endpoint..."
 
-# API_ID=$(aws apigatewayv2 get-apis \
-#   --query "Items[?Name=='keygen-api'].ApiId" \
-#   --output text)
+API_ID=$(aws apigatewayv2 get-apis \
+  --query "Items[?Name=='notes-api'].ApiId" \
+  --output text)
 
-# if [[ -z "${API_ID}" || "${API_ID}" == "None" ]]; then
-#   echo "ERROR: No API found with name 'keygen-api'"
-#   exit 1
-# fi
+if [[ -z "${API_ID}" || "${API_ID}" == "None" ]]; then
+  echo "ERROR: No API found with name 'notes-api'"
+  exit 1
+fi
 
-# URL=$(aws apigatewayv2 get-api \
-#   --api-id "${API_ID}" \
-#   --query "ApiEndpoint" \
-#   --output text)
+API_BASE=$(aws apigatewayv2 get-api \
+  --api-id "${API_ID}" \
+  --query "ApiEndpoint" \
+  --output text)
 
-# export API_BASE="${URL}"
-# echo "NOTE: API Gateway URL - ${API_BASE}"
+echo "NOTE: API Gateway URL - ${API_BASE}"
 
-# # -----------------------------------------------------------------------------------------------
-# # Step 2: Submit SSH key generation request
-# # -----------------------------------------------------------------------------------------------
-# KEY_TYPE="${KEY_TYPE:-rsa}"
-# KEY_BITS="${KEY_BITS:-2048}"
+# ------------------------------------------------------------------------------
+# Step 2: Create 5 notes
+# ------------------------------------------------------------------------------
+echo "NOTE: Creating 5 test notes..."
 
-# REQ_PAYLOAD=$(jq -n --arg kt "$KEY_TYPE" --arg kb "$KEY_BITS" \
-#   '{ key_type: $kt, key_bits: ($kb | tonumber) }')
+NOTE_IDS=()
 
-# echo "NOTE: Sending request - key_type=${KEY_TYPE}, key_bits=${KEY_BITS}"
-# RESPONSE=$(curl -s -X POST "${API_BASE}/keygen" \
-#   -H "Content-Type: application/json" \
-#   -d "$REQ_PAYLOAD")
+for i in {1..5}; do
+  PAYLOAD=$(jq -n \
+    --arg title "Test Note ${i}" \
+    --arg note "This is test note ${i}" \
+    '{ title: $title, note: $note }')
 
-# REQUEST_ID=$(echo "$RESPONSE" | jq -r '.request_id // empty')
+  RESPONSE=$(curl -s -X POST "${API_BASE}/notes" \
+    -H "Content-Type: application/json" \
+    -d "${PAYLOAD}")
 
-# if [[ -z "$REQUEST_ID" ]]; then
-#   echo "ERROR: No request_id returned."
-#   echo "NOTE: Response was: $RESPONSE"
-#   exit 1
-# fi
+  NOTE_ID=$(echo "${RESPONSE}" | jq -r '.id // empty')
 
-# echo "NOTE: Submitted keygen request ($REQUEST_ID)."
-# echo "NOTE: Polling for result..."
+  if [[ -z "${NOTE_ID}" ]]; then
+    echo "ERROR: Failed to create note ${i}"
+    echo "RESPONSE: ${RESPONSE}"
+    exit 1
+  fi
 
-# # -----------------------------------------------------------------------------------------------
-# # Step 3: Poll result endpoint until response available
-# # -----------------------------------------------------------------------------------------------
-# MAX_ATTEMPTS=30
-# SLEEP_SECONDS=2
+  NOTE_IDS+=("${NOTE_ID}")
+  echo "NOTE: Created note ${i} (id=${NOTE_ID})"
+done
 
-# for ((i=1; i<=MAX_ATTEMPTS; i++)); do
-#   RESULT=$(curl -s "${API_BASE}/result/${REQUEST_ID}")
-#   STATUS=$(echo "$RESULT" | jq -r '.status // empty')
+# ------------------------------------------------------------------------------
+# Step 3: List notes
+# ------------------------------------------------------------------------------
+echo "NOTE: Listing notes..."
 
-#   if [[ "$STATUS" == "complete" ]]; then
-#     echo "NOTE: Key generation complete."
-#     #echo "$RESULT" | jq
-#     exit 0
-#   fi
+LIST_RESPONSE=$(curl -s "${API_BASE}/notes")
+NOTE_COUNT=$(echo "${LIST_RESPONSE}" | jq '.items | length')
 
-#   if [[ "$STATUS" == "error" ]]; then
-#     echo "ERROR: Service reported an error."
-#     echo "$RESULT" | jq
-#     exit 1
-#   fi
+if [[ "${NOTE_COUNT}" -lt 5 ]]; then
+  echo "ERROR: Expected at least 5 notes, got ${NOTE_COUNT}"
+  exit 1
+fi
 
-#   echo "WARNING: Attempt ${i}/${MAX_ATTEMPTS}: pending..."
-#   sleep "$SLEEP_SECONDS"
-# done
+echo "NOTE: List endpoint returned ${NOTE_COUNT} notes"
 
-# echo "ERROR: Key generation did not complete after ${MAX_ATTEMPTS} attempts."
-# exit 1
+# ------------------------------------------------------------------------------
+# Step 4: Get each note by ID
+# ------------------------------------------------------------------------------
+echo "NOTE: Fetching each created note..."
+
+for ID in "${NOTE_IDS[@]}"; do
+  GET_RESPONSE=$(curl -s "${API_BASE}/notes/${ID}")
+  TITLE=$(echo "${GET_RESPONSE}" | jq -r '.title // empty')
+
+  if [[ -z "${TITLE}" ]]; then
+    echo "ERROR: Failed to fetch note ${ID}"
+    exit 1
+  fi
+
+  echo "NOTE: Retrieved note ${ID} (${TITLE})"
+done
+
+# ------------------------------------------------------------------------------
+# Step 5: Update each note
+# ------------------------------------------------------------------------------
+echo "NOTE: Updating each note..."
+
+for ID in "${NOTE_IDS[@]}"; do
+  UPDATE_PAYLOAD=$(jq -n \
+    --arg title "Updated ${ID}" \
+    '{ title: $title }')
+
+  UPDATE_RESPONSE=$(curl -s -X PUT "${API_BASE}/notes/${ID}" \
+    -H "Content-Type: application/json" \
+    -d "${UPDATE_PAYLOAD}")
+
+  UPDATED_TITLE=$(echo "${UPDATE_RESPONSE}" | jq -r '.title // empty')
+
+  if [[ -z "${UPDATED_TITLE}" ]]; then
+    echo "ERROR: Failed to update note ${ID}"
+    exit 1
+  fi
+
+  echo "NOTE: Updated note ${ID}"
+done
+
+# ------------------------------------------------------------------------------
+# Step 6: Delete each note
+# ------------------------------------------------------------------------------
+echo "NOTE: Deleting each note..."
+
+for ID in "${NOTE_IDS[@]}"; do
+  curl -s -X DELETE "${API_BASE}/notes/${ID}" > /dev/null
+  echo "NOTE: Deleted note ${ID}"
+done
+
+echo "SUCCESS: Notes API validation complete"
