@@ -251,10 +251,10 @@ resource "aws_lambda_permission" "allow_delete_invoke" {
   source_arn    = "${aws_apigatewayv2_api.notes_api.execution_arn}/*/*"
 }
 
-# --------------------------------------------------------------------------------
-# OUTPUT: notes_api_endpoint (optional)
-# --------------------------------------------------------------------------------
-output "notes_api_endpoint" {
-   description = "Invoke URL for the Notes API Gateway"
-   value       = aws_apigatewayv2_stage.notes_stage.invoke_url
-}
+# # --------------------------------------------------------------------------------
+# # OUTPUT: notes_api_endpoint (optional)
+# # --------------------------------------------------------------------------------
+# output "notes_api_endpoint" {
+#    description = "Invoke URL for the Notes API Gateway"
+#    value       = aws_apigatewayv2_stage.notes_stage.invoke_url
+# }
