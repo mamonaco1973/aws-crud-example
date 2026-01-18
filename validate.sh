@@ -111,9 +111,21 @@ done
 echo "NOTE: Updating each note..."
 
 for ID in "${NOTE_IDS[@]}"; do
+  # Fetch existing note to preserve required fields
+  CURRENT=$(curl -s "${API_BASE}/notes/${ID}")
+
+  TITLE=$(echo "${CURRENT}" | jq -r '.title // empty')
+  NOTE=$(echo "${CURRENT}" | jq -r '.note // empty')
+
+  if [[ -z "${TITLE}" ]]; then
+    echo "ERROR: Failed to fetch existing note ${ID}"
+    exit 1
+  fi
+
   UPDATE_PAYLOAD=$(jq -n \
-    --arg title "Updated ${ID}" \
-    '{ title: $title }')
+    --arg title "${TITLE}" \
+    --arg note  "Updated note for ${ID}" \
+    '{ title: $title, note: $note }')
 
   UPDATE_RESPONSE=$(curl -s -X PUT "${API_BASE}/notes/${ID}" \
     -H "Content-Type: application/json" \
@@ -123,6 +135,7 @@ for ID in "${NOTE_IDS[@]}"; do
 
   if [[ -z "${UPDATED_TITLE}" ]]; then
     echo "ERROR: Failed to update note ${ID}"
+    echo "RESPONSE: ${UPDATE_RESPONSE}"
     exit 1
   fi
 
