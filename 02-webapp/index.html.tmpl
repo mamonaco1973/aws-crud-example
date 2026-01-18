@@ -1,125 +1,340 @@
-<!-- =============================================================================
- index.html
- Simple client for AWS Keygen API
-============================================================================= -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Key Generator</title>
-<style>
-body { font-family: sans-serif; max-width: 700px; margin: 2em auto; }
-label { display: block; margin-top: 1em; }
-button { margin-top: 1em; padding: 0.5em 1em; }
-textarea {
-  width: 100%;
-  font-family: monospace;
-  white-space: pre-wrap;
-  word-break: break-all;
-  background: #f5f5f5;
-  padding: 1em;
-  box-sizing: border-box;
-}
-#status { margin-top: 1em; font-weight: bold; }
-.copy-btn {
-  margin-top: 0.5em;
-  padding: 0.4em 0.8em;
-  font-size: 0.9em;
-}
-</style>
+  <meta charset="utf-8" />
+  <title>Notes Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    header {
+      padding: 16px;
+      background: #020617;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    section {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    button {
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-size: 13px;
+    }
+
+    button.secondary { background: #475569; }
+    button.delete { background: #dc2626; }
+
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      border: 1px solid #1e293b;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 13px;
+    }
+
+    textarea { min-height: 180px; }
+
+    .note {
+      padding: 8px;
+      border-bottom: 1px solid #1e293b;
+      cursor: pointer;
+    }
+
+    .note:hover { background: #020617; }
+    .note.active { background: #1e293b; }
+
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #94a3b8;
+      white-space: pre-wrap;
+    }
+
+    /* ===================== Modal ===================== */
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 520px;
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .modal-body {
+      margin-top: 12px;
+    }
+
+    .modal-footer {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+  </style>
 </head>
+
 <body>
-<h2>Generate SSH Keypair</h2>
 
-<label>
-  Select key type:
-  <select id="keyType">
-    <option value="rsa-2048">RSA 2048-bit</option>
-    <option value="rsa-4096">RSA 4096-bit</option>
-    <option value="ed25519">Ed25519</option>
-  </select>
-</label>
+<header>
+  <h1>Notes Demo</h1>
+</header>
 
-<button id="generateBtn">Generate Keypair</button>
+<main>
 
-<div id="status"></div>
+  <!-- Notes list -->
+  <section>
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <button id="btnRefresh" class="secondary">Refresh</button>
+      <button id="btnNew">New</button>
+    </div>
+    <div id="notes"></div>
+  </section>
 
-<!-- -----------------------------------------------------------------------------
- Public Key Section
------------------------------------------------------------------------------ -->
-<h3>Public Key</h3>
-<textarea id="pubKey" rows="3" readonly></textarea>
-<button class="copy-btn"
-  onclick="navigator.clipboard.writeText(document.getElementById('pubKey').value)">
-  Copy Public Key
-</button>
+  <!-- Editor -->
+  <section>
+    <input id="title" placeholder="Title (required)" />
+    <textarea id="note" placeholder="Note (optional)"></textarea>
 
-<!-- -----------------------------------------------------------------------------
- Private Key Section
------------------------------------------------------------------------------ -->
-<h3>Private Key</h3>
-<textarea id="privKey" rows="15" readonly></textarea>
-<button class="copy-btn"
-  onclick="navigator.clipboard.writeText(document.getElementById('privKey').value)">
-  Copy Private Key
-</button>
+    <div style="display:flex; gap:8px;">
+      <button id="btnSave">Save</button>
+      <button id="btnDelete" class="delete">Delete</button>
+    </div>
+
+    <div id="status" class="status"></div>
+  </section>
+
+</main>
+
+<!-- ===================== New Note Modal ===================== -->
+
+<div id="newModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <div>New Note</div>
+      <div style="flex:1;"></div>
+      <button id="btnModalCancel" class="secondary">Cancel</button>
+    </div>
+
+    <div class="modal-body">
+      <input id="modalTitle" placeholder="Title (required)" />
+      <textarea id="modalNote" placeholder="Optional note"></textarea>
+      <div id="modalStatus" class="status"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button id="btnModalCreate">Create</button>
+    </div>
+  </div>
+</div>
 
 <script>
-// -----------------------------------------------------------------------------
-// Utility: sleep
-// -----------------------------------------------------------------------------
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+  // ===================== Config =====================
+  const API_BASE_URL = "${API_BASE}";
 
-// -----------------------------------------------------------------------------
-// Generate Keypair handler
-// -----------------------------------------------------------------------------
-document.getElementById("generateBtn").onclick = async () => {
-  const sel = document.getElementById("keyType").value;
-  const [type, bits] = sel.split("-");
-  document.getElementById("status").textContent = "Requesting keypair...";
+  // ===================== State ======================
+  let notes = [];
+  let selectedId = null;
 
-  try {
-    // -----------------------------------------------------------
-    // Step 1: POST /keygen
-    // -----------------------------------------------------------
-    const resp = await fetch(`${API_BASE}/keygen`, {
-      method: "POST",
+  // ===================== Helpers ====================
+  async function api(path, method="GET", body) {
+    const res = await fetch(API_BASE_URL + path, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key_type: type, key_bits: Number(bits) })
+      body: body ? JSON.stringify(body) : undefined
     });
-    const data = await resp.json();
-    const id = data.request_id;
-    document.getElementById("status").textContent =
-      `Request ID: ${id} (waiting...)`;
 
-    // -----------------------------------------------------------
-    // Step 2: Poll /result/{id}
-    // -----------------------------------------------------------
-    let ready = false, result;
-    for (let i = 0; i < 20; i++) {
-      await sleep(1500);
-      const res = await fetch(`${API_BASE}/result/${id}`);
-      result = await res.json();
-      if (result.status !== "pending") { ready = true; break; }
-    }
-
-    // -----------------------------------------------------------
-    // Step 3: Display results
-    // -----------------------------------------------------------
-    if (ready) {
-      document.getElementById("status").textContent = "Keypair ready!";
-      document.getElementById("pubKey").value = atob(result.public_key_b64);
-      document.getElementById("privKey").value = atob(result.private_key_b64);
-    } else {
-      document.getElementById("status").textContent =
-        "Timed out waiting for result.";
-    }
-  } catch (err) {
-    document.getElementById("status").textContent =
-      "Error: " + err.message;
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || res.status);
+    return text ? JSON.parse(text) : null;
   }
-};
+
+  function setStatus(msg) {
+    document.getElementById("status").textContent = msg || "";
+  }
+
+  // ===================== CRUD =======================
+  async function loadNotes() {
+    try {
+      const res = await api("/notes");
+      notes = res.items || [];
+      renderNotes();
+      setStatus(`Loaded ${notes.length} note(s)`);
+    } catch (e) {
+      setStatus("Error loading notes: " + e.message);
+    }
+  }
+
+  async function loadNote(id) {
+    try {
+      const n = await api(`/notes/${id}`);
+      document.getElementById("title").value = n.title || "";
+      document.getElementById("note").value = n.note || "";
+      selectedId = id;
+      renderNotes();
+    } catch (e) {
+      setStatus("Error loading note: " + e.message);
+    }
+  }
+
+  async function saveNote() {
+    const title = document.getElementById("title").value.trim();
+    const note  = document.getElementById("note").value || "";
+
+    if (!title) {
+      setStatus("Title is required");
+      return;
+    }
+
+    try {
+      if (selectedId) {
+        await api(`/notes/${selectedId}`, "PUT", { title, note });
+        setStatus("Updated note");
+      } else {
+        const res = await api("/notes", "POST", { title, note });
+        selectedId = res.id;
+        setStatus("Created note");
+      }
+      await loadNotes();
+    } catch (e) {
+      setStatus("Error saving note: " + e.message);
+    }
+  }
+
+  async function deleteNote() {
+    if (!selectedId) return;
+    if (!confirm("Delete this note?")) return;
+
+    try {
+      await api(`/notes/${selectedId}`, "DELETE");
+      selectedId = null;
+      document.getElementById("title").value = "";
+      document.getElementById("note").value = "";
+      await loadNotes();
+      setStatus("Deleted note");
+    } catch (e) {
+      setStatus("Error deleting note: " + e.message);
+    }
+  }
+
+  function renderNotes() {
+    const el = document.getElementById("notes");
+    el.innerHTML = "";
+    notes.forEach(n => {
+      const d = document.createElement("div");
+      d.className = "note" + (n.id === selectedId ? " active" : "");
+      d.textContent = n.title || "(untitled)";
+      d.onclick = () => loadNote(n.id);
+      el.appendChild(d);
+    });
+  }
+
+  // ===================== Modal ======================
+  const modal = document.getElementById("newModal");
+
+  function openModal() {
+    document.getElementById("modalTitle").value = "";
+    document.getElementById("modalNote").value = "";
+    document.getElementById("modalStatus").textContent = "";
+    modal.style.display = "flex";
+    setTimeout(() => document.getElementById("modalTitle").focus(), 0);
+  }
+
+  function closeModal() {
+    modal.style.display = "none";
+  }
+
+  async function createFromModal() {
+    const title = document.getElementById("modalTitle").value.trim();
+    const note  = document.getElementById("modalNote").value || "";
+
+    if (!title) {
+      document.getElementById("modalStatus").textContent = "Title is required";
+      return;
+    }
+
+    try {
+      const res = await api("/notes", "POST", { title, note });
+      selectedId = res.id;
+      document.getElementById("title").value = title;
+      document.getElementById("note").value = note;
+      closeModal();
+      await loadNotes();
+      setStatus("Created note");
+    } catch (e) {
+      document.getElementById("modalStatus").textContent =
+        "Error creating note: " + e.message;
+    }
+  }
+
+  // ===================== Wiring =====================
+  document.getElementById("btnRefresh").addEventListener("click", loadNotes);
+  document.getElementById("btnNew").addEventListener("click", openModal);
+  document.getElementById("btnSave").addEventListener("click", saveNote);
+  document.getElementById("btnDelete").addEventListener("click", deleteNote);
+  document.getElementById("btnModalCancel").addEventListener("click", closeModal);
+  document.getElementById("btnModalCreate").addEventListener("click", createFromModal);
+
+  modal.addEventListener("click", e => {
+    if (e.target === modal) closeModal();
+  });
+
+  // ===================== Init ======================
+  loadNotes();
 </script>
+
 </body>
 </html>

@@ -30,7 +30,7 @@ resource "random_id" "suffix" {
 #   includes a random suffix to prevent naming conflicts.
 # --------------------------------------------------------------------------------
 resource "aws_s3_bucket" "web_bucket" {
-  bucket = "keygen-web-${random_id.suffix.hex}"
+  bucket = "notes-web-${random_id.suffix.hex}"
 }
 
 # --------------------------------------------------------------------------------
