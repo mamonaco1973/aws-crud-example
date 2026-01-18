@@ -1,26 +1,26 @@
 # ================================================================================
-# File: lambda_create.tf
+# File: lambda_delete.tf
 # ================================================================================
 # Purpose:
-#   Deploys the "Create Note" Lambda function that writes new notes
-#   to the DynamoDB notes table. This function is intended to be
-#   invoked by an API Gateway route such as POST /notes.
+#   Deploys the "Delete Note" Lambda function that deletes an existing
+#   note from the DynamoDB notes table. This function is intended to be
+#   invoked by an API Gateway route such as DELETE /notes/{id}.
 #
 # Notes:
 #   - Uses Python 3.11 runtime.
-#   - Writes items to the DynamoDB "notes" table defined in dynamodb.tf.
+#   - Deletes items from the DynamoDB "notes" table defined in dynamodb.tf.
 # ================================================================================
 
 # --------------------------------------------------------------------------------
-# RESOURCE: aws_iam_role.lambda_create_role
+# RESOURCE: aws_iam_role.lambda_delete_role
 # --------------------------------------------------------------------------------
 # Description:
 #   IAM role assumed by the Lambda function during execution.
 #   The trust policy allows the Lambda service to assume this
 #   role at runtime.
 # --------------------------------------------------------------------------------
-resource "aws_iam_role" "lambda_create_role" {
-  name = "notes-create-role"
+resource "aws_iam_role" "lambda_delete_role" {
+  name = "notes-delete-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -33,53 +33,53 @@ resource "aws_iam_role" "lambda_create_role" {
 }
 
 # --------------------------------------------------------------------------------
-# RESOURCE: aws_iam_role_policy_attachment.lambda_create_basic
+# RESOURCE: aws_iam_role_policy_attachment.lambda_delete_basic
 # --------------------------------------------------------------------------------
 # Description:
 #   Attaches the AWS-managed basic execution policy to grant
 #   CloudWatch Logs access for the Lambda function.
 # --------------------------------------------------------------------------------
-resource "aws_iam_role_policy_attachment" "lambda_create_basic" {
-  role       = aws_iam_role.lambda_create_role.name
+resource "aws_iam_role_policy_attachment" "lambda_delete_basic" {
+  role       = aws_iam_role.lambda_delete_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 # --------------------------------------------------------------------------------
-# RESOURCE: aws_iam_role_policy.lambda_create_dynamo
+# RESOURCE: aws_iam_role_policy.lambda_delete_dynamo
 # --------------------------------------------------------------------------------
 # Description:
-#   Inline IAM policy that allows the Lambda function to write
-#   items to the DynamoDB notes table.
+#   Inline IAM policy that allows the Lambda function to delete
+#   items from the DynamoDB notes table.
 # --------------------------------------------------------------------------------
-resource "aws_iam_role_policy" "lambda_create_dynamo" {
-  name = "notes-create-dynamo"
-  role = aws_iam_role.lambda_create_role.id
+resource "aws_iam_role_policy" "lambda_delete_dynamo" {
+  name = "notes-delete-dynamo"
+  role = aws_iam_role.lambda_delete_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["dynamodb:PutItem"],
+      Effect   = "Allow",
+      Action   = ["dynamodb:DeleteItem"],
       Resource = aws_dynamodb_table.notes.arn
     }]
   })
 }
 
 # --------------------------------------------------------------------------------
-# RESOURCE: aws_lambda_function.lambda_create
+# RESOURCE: aws_lambda_function.lambda_delete
 # --------------------------------------------------------------------------------
 # Description:
-#   Deploys the "create-create" Lambda function. The function
-#   creates new notes in DynamoDB and returns the created item.
+#   Deploys the "delete-note" Lambda function. The function
+#   deletes a note in DynamoDB and returns a simple confirmation.
 #
 # Handler:
-#   create.lambda_handler  (code/create.py)
+#   delete.lambda_handler  (code/delete.py)
 # --------------------------------------------------------------------------------
-resource "aws_lambda_function" "lambda_create" {
-  function_name    = "create-note"
-  role             = aws_iam_role.lambda_create_role.arn
+resource "aws_lambda_function" "lambda_delete" {
+  function_name    = "delete-note"
+  role             = aws_iam_role.lambda_delete_role.arn
   runtime          = "python3.11"
-  handler          = "create.lambda_handler"
+  handler          = "delete.lambda_handler"
   filename         = data.archive_file.lambdas_zip.output_path
   source_code_hash = data.archive_file.lambdas_zip.output_base64sha256
   timeout          = 15

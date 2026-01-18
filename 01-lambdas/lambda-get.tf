@@ -70,11 +70,11 @@ resource "aws_iam_role_policy" "lambda_get_dynamo" {
 # RESOURCE: aws_lambda_function.lambda_get
 # --------------------------------------------------------------------------------
 # Description:
-#   Deploys the "notes-get" Lambda function. The function reads a single
+#   Deploys the "get-note" Lambda function. The function reads a single
 #   note from DynamoDB using owner + id and returns it to API Gateway.
 # --------------------------------------------------------------------------------
 resource "aws_lambda_function" "lambda_get" {
-  function_name    = "notes-get"
+  function_name    = "get-note"
   role             = aws_iam_role.lambda_get_role.arn
   runtime          = "python3.11"
   handler          = "get.lambda_handler"
