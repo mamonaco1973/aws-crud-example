@@ -15,18 +15,18 @@
 export AWS_DEFAULT_REGION="us-east-1"
 set -euo pipefail
 
-# # --------------------------------------------------------------------------------
-# # DESTROY WEB APPLICATION
-# # --------------------------------------------------------------------------------
-# # Destroys the S3 static web app and supporting Terraform resources
-# # under the 04-webapp directory.
-# # --------------------------------------------------------------------------------
-# echo "NOTE: Destroying Web Application..."
+# --------------------------------------------------------------------------------
+# DESTROY WEB APPLICATION
+# --------------------------------------------------------------------------------
+# Destroys the S3 static web app and supporting Terraform resources
+# under the 02-webapp directory.
+# --------------------------------------------------------------------------------
+echo "NOTE: Destroying Web Application..."
 
-# cd 04-webapp || { echo "ERROR: Directory 04-webapp not found."; exit 1; }
-# terraform init
-# terraform destroy -auto-approve
-# cd .. || exit
+cd 02-webapp || { echo "ERROR: Directory 02-webapp not found."; exit 1; }
+terraform init
+terraform destroy -auto-approve
+cd .. || exit
 
 # --------------------------------------------------------------------------------
 # DESTROY LAMBDAS AND API GATEWAY
