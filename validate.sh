@@ -152,4 +152,4 @@ for ID in "${NOTE_IDS[@]}"; do
   echo "NOTE: Deleted note ${ID}"
 done
 
-echo "SUCCESS: Notes API validation complete"
+echo "NOTE: Notes API validation complete"
