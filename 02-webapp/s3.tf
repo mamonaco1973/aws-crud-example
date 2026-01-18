@@ -86,7 +86,8 @@ resource "aws_s3_object" "index_html" {
   key          = "index.html"
   source       = "${path.module}/index.html"
   content_type = "text/html"
-
+  etag          = filemd5("${path.module}/index.html")
+  cache_control = "no-store, max-age=0"
   depends_on = [aws_s3_bucket_policy.public_policy]
 }
 
