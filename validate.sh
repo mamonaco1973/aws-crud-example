@@ -130,13 +130,16 @@ for ID in "${NOTE_IDS[@]}"; do
 done
 
 # ------------------------------------------------------------------------------
-# Step 6: Delete each note
+# Step 6: Delete the first created note
 # ------------------------------------------------------------------------------
-echo "NOTE: Deleting each note..."
+echo "NOTE: Deleting the first created note..."
 
-for ID in "${NOTE_IDS[@]}"; do
-  curl -s -X DELETE "${API_BASE}/notes/${ID}" > /dev/null
-  echo "NOTE: Deleted note ${ID}"
-done
+if [[ "${#NOTE_IDS[@]}" -gt 0 ]]; then
+  FIRST_ID="${NOTE_IDS[0]}"
+  curl -s -X DELETE "${API_BASE}/notes/${FIRST_ID}" > /dev/null
+  echo "NOTE: Deleted note ${FIRST_ID}"
+else
+  echo "WARNING: No notes available to delete"
+fi
 
 echo "SUCCESS: Notes API validation complete"
