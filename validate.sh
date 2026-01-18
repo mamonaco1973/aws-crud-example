@@ -111,24 +111,31 @@ done
 echo "NOTE: Updating each note..."
 
 for ID in "${NOTE_IDS[@]}"; do
+  # Fetch existing note to preserve required fields
+  CURRENT=$(curl -s "${API_BASE}/notes/${ID}")
+
+  TITLE=$(echo "${CURRENT}" | jq -r '.title // empty')
+  NOTE=$(echo "${CURRENT}" | jq -r '.note // empty')
+
+  if [[ -z "${TITLE}" ]]; then
+    echo "ERROR: Failed to fetch existing note ${ID}"
+    exit 1
+  fi
+
   UPDATE_PAYLOAD=$(jq -n \
-    --arg title "Updated ${ID}" \
-    '{ title: $title }')
- 
-  echo $UPDATE_PAYLOAD
+    --arg title "${TITLE}" \
+    --arg note  "Updated note for ${ID}" \
+    '{ title: $title, note: $note }')
 
   UPDATE_RESPONSE=$(curl -s -X PUT "${API_BASE}/notes/${ID}" \
     -H "Content-Type: application/json" \
-    -d "${UPDATE_PAYLOAD}") 
-
-  echo $UPDATE_RESPONSE
+    -d "${UPDATE_PAYLOAD}")
 
   UPDATED_TITLE=$(echo "${UPDATE_RESPONSE}" | jq -r '.title // empty')
 
-  echo $UPDATED_TITLE
-
   if [[ -z "${UPDATED_TITLE}" ]]; then
     echo "ERROR: Failed to update note ${ID}"
+    echo "RESPONSE: ${UPDATE_RESPONSE}"
     exit 1
   fi
 
@@ -136,16 +143,13 @@ for ID in "${NOTE_IDS[@]}"; do
 done
 
 # ------------------------------------------------------------------------------
-# Step 6: Delete the first created note
+# Step 6: Delete each note
 # ------------------------------------------------------------------------------
-echo "NOTE: Deleting the first created note..."
+echo "NOTE: Deleting each note..."
 
-if [[ "${#NOTE_IDS[@]}" -gt 0 ]]; then
-  FIRST_ID="${NOTE_IDS[0]}"
-  curl -s -X DELETE "${API_BASE}/notes/${FIRST_ID}" > /dev/null
-  echo "NOTE: Deleted note ${FIRST_ID}"
-else
-  echo "WARNING: No notes available to delete"
-fi
+for ID in "${NOTE_IDS[@]}"; do
+  curl -s -X DELETE "${API_BASE}/notes/${ID}" > /dev/null
+  echo "NOTE: Deleted note ${ID}"
+done
 
 echo "SUCCESS: Notes API validation complete"
