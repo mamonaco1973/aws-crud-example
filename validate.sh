@@ -114,12 +114,18 @@ for ID in "${NOTE_IDS[@]}"; do
   UPDATE_PAYLOAD=$(jq -n \
     --arg title "Updated ${ID}" \
     '{ title: $title }')
+ 
+  echo $UPDATE_PAYLOAD
 
   UPDATE_RESPONSE=$(curl -s -X PUT "${API_BASE}/notes/${ID}" \
     -H "Content-Type: application/json" \
-    -d "${UPDATE_PAYLOAD}")
+    -d "${UPDATE_PAYLOAD}") 
+
+  echo $UPDATE_RESPONSE
 
   UPDATED_TITLE=$(echo "${UPDATE_RESPONSE}" | jq -r '.title // empty')
+
+  echo $UPDATED_TITLE
 
   if [[ -z "${UPDATED_TITLE}" ]]; then
     echo "ERROR: Failed to update note ${ID}"
