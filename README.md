@@ -19,6 +19,8 @@ routes requests to dedicated Lambda functions, DynamoDB provides fully managed
 persistence, and AWS handles scaling, availability, and fault tolerance
 automatically.
 
+![diagram](aws-crud-example.png)
+
 Key capabilities demonstrated:
 
 1. **Serverless CRUD API** – Implements REST-style endpoints backed by Lambda
