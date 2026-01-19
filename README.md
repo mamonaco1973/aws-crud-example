@@ -164,8 +164,8 @@ If this is your first time following along, we recommend starting with this vide
 ## Download this Repository
 
 ```bash
-git clone https://github.com/mamonaco1973/aws-sqs-keygen.git
-cd aws-sqs-keygen
+git clone https://github.com/mamonaco1973/aws-crud-example.git
+cd aws-crud-example
 ```
 
 ## Build the Code
@@ -173,17 +173,16 @@ cd aws-sqs-keygen
 Run [check_env](check_env.sh) to validate your environment, then run [apply](apply.sh) to provision the infrastructure.
 
 ```bash
-~/aws-sqs-keygen$ ./apply.sh
+~/aws-crud-example$ ./apply.sh
 NOTE: Running environment validation...
 NOTE: Validating that required commands are found in your PATH.
 NOTE: aws is found in the current PATH.
 NOTE: terraform is found in the current PATH.
-NOTE: docker is found in the current PATH.
 NOTE: jq is found in the current PATH.
 NOTE: All required commands are available.
 NOTE: Checking AWS cli connection.
 NOTE: Successfully logged into AWS.
-NOTE: Building Active Directory instance...
+
 Initializing the backend...
 ```
 
@@ -192,52 +191,41 @@ Initializing the backend...
 When the deployment completes, the following resources are created:
 
 - **Core Infrastructure:**  
-  - Fully serverless architecture—no EC2 instances or VPC networking required  
-  - Terraform-managed provisioning of SQS, Lambda, API Gateway, DynamoDB, ECR, and S3 resources  
-  - Event-driven message pipeline enabling asynchronous SSH key generation requests and result retrieval  
+  - Fully serverless architecture—no EC2 instances, containers, or VPC networking required  
+  - Terraform-managed provisioning of API Gateway, Lambda, DynamoDB, and S3 resources  
+  - Stateless, request-driven design where each API call is handled independently  
 
 - **Security & IAM:**  
-  - IAM roles for Lambda execution with scoped permissions for SQS, DynamoDB, CloudWatch, and Secrets Manager  
-  - Optional encryption of SQS queues and DynamoDB tables using AWS-managed KMS keys  
-  - Secure handling of generated SSH keys entirely in-memory—no local file storage or persistence  
-
-- **Amazon SQS Queue:**  
-  - Dedicated request queue (`keygen-request`) for incoming SSH key generation jobs  
-  - Receives messages from API Gateway or CLI clients, decoupling request submission from processing  
-  - Ensures durability and automatic retry handling for transient Lambda invocation failures  
+  - IAM roles for Lambda execution with scoped permissions for DynamoDB and CloudWatch  
+  - Principle-of-least-privilege policies applied per Lambda function  
+  - No long-lived credentials embedded in application code  
 
 - **Amazon DynamoDB Table:**  
-  - Central result store keyed by unique `request_id`  
-  - Lambda writes key generation results to DynamoDB after successful processing  
-  - Each record includes metadata (status, key_type, key_bits) and base64-encoded keypair data  
-  - Configured with Time-to-Live (TTL) for automatic expiration and cost efficiency  
+  - Single table storing notes keyed by `owner` (partition key) and `id` (sort key)  
+  - Each item stores `title`, `note`, `created_at`, and `updated_at` attributes  
+  - On-demand capacity mode for automatic scaling and cost efficiency  
 
-- **AWS Lambda Function:**  
-  - Python-based Lambda built from a custom Docker image hosted in Amazon ECR  
-  - Asynchronously consumes requests from the SQS queue, generates SSH keypairs, and writes results to DynamoDB  
-  - Supports RSA-2048, RSA-4096, and Ed25519 key types configurable through API payload parameters  
-  - Emits structured logs and metrics to CloudWatch for observability and debugging  
+- **AWS Lambda Functions:**  
+  - Multiple Python-based Lambda functions implementing Create, Read, Update, List, and Delete operations  
+  - Each function is independently deployed and mapped to a specific API route  
+  - Emits structured logs to CloudWatch for observability and debugging  
 
 - **Amazon API Gateway:**  
-  - HTTP API exposing `/request` and `/result/{request_id}` endpoints  
-  - Integrates directly with Lambda functions to submit new jobs and query DynamoDB for completed results  
-  - Provides stateless, secure HTTPS access for browser clients or programmatic integrations  
-
-- **Amazon ECR:**  
-  - Private ECR repository (`ssh-keygen`) storing the Lambda container image  
-  - Automated vulnerability scanning enabled for enhanced security visibility  
-  - Acts as the Lambda image source during Terraform deployment  
+  - HTTP API exposing REST-style `/notes` and `/notes/{id}` endpoints  
+  - Routes requests to the appropriate Lambda function based on HTTP method and path  
+  - Provides secure, stateless HTTPS access for browser and CLI clients  
 
 - **Static Web Application (S3):**  
-  - S3 bucket configured for static website hosting with public read access through a managed bucket policy  
-  - `index.html` provides a simple frontend allowing users to select key type and initiate generation requests  
-  - Dynamically calls the API Gateway endpoints published as Terraform outputs  
+  - S3 bucket configured for static website hosting  
+  - `index.html` provides a lightweight browser-based interface for managing notes  
+  - Frontend dynamically calls the deployed API Gateway endpoints  
 
 - **Automation & Validation:**  
   - `apply.sh`, `destroy.sh`, and `check_env.sh` scripts automate provisioning, teardown, and environment validation  
-  - `validate.sh` performs end-to-end verification by invoking the API, polling for results, and confirming DynamoDB output  
-  - Entire workflow runs with AWS credentials, Docker, Terraform, and jq—no manual resource setup required  
+  - `validate.sh` performs end-to-end API verification using curl and jq  
+  - Entire workflow runs using Terraform and AWS CLI—no manual AWS console setup required  
 
-Together, these resources form a **serverless, event-driven SSH KeyGen pipeline** that demonstrates modern AWS microservice design principles—scalable, cost-efficient, and fully managed from infrastructure to code.
-
+Together, these resources form a **clean, minimal serverless CRUD application**
+that demonstrates modern AWS API design principles—simple, scalable, and fully
+managed from infrastructure to application code.
 
