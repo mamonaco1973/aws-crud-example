@@ -37,116 +37,119 @@ Together, these components form a **clean, minimal reference architecture** for
 building serverless APIs on AWS — suitable for learning, prototyping, or extending
 into more advanced event-driven and authenticated microservices.
 
-
 ## API Gateway Endpoints
 
-The **KeyGen API** exposes two HTTP endpoints through **Amazon API Gateway (HTTP API)**, providing
-a simple request/response workflow for asynchronous SSH key generation.  
-All endpoints return structured JSON and are designed to integrate seamlessly with both CLI and
-browser-based clients.
+The **Notes API** exposes REST-style CRUD endpoints through **Amazon API Gateway
+(HTTP API)**. These endpoints allow clients to create, list, retrieve, update,
+and delete notes stored in DynamoDB. All endpoints return JSON and work with
+both CLI and browser-based clients.
 
-### POST /keygen
+> Note: In this simplified demo, the note `owner` is hardcoded to `"global"` in
+> the Lambda handlers.
+
+---
+
+### POST /notes
 
 **Purpose:**  
-Submits a new SSH key generation request to the service.  
-The request is placed on the SQS queue and processed asynchronously by the Lambda function.
+Creates a new note in DynamoDB.
 
 **Request Body (JSON):**
 ```json
 {
-  "key_type": "rsa",
-  "key_bits": 2048
+  "title": "Test Note 1",
+  "note": "This is test note 1"
 }
 ```
 
 **Parameters:**
+
 | Field | Type | Required | Description |
-|-------|------|-----------|-------------|
-| `key_type` | string | No | Type of key to generate (`rsa` or `ed25519`). Defaults to `rsa`. |
-| `key_bits` | integer | No | RSA key size (`2048` or `4096`). Ignored for Ed25519 keys. |
+|------|------|----------|-------------|
+| title | string | Yes | Note title |
+| note | string | Yes | Note body/content |
 
 **Example Request:**
 ```bash
-curl -X POST https://<api-id>.execute-api.us-east-1.amazonaws.com/keygen   -H "Content-Type: application/json"   -d '{"key_type": "rsa", "key_bits": 2048}'
+curl -s -X POST https://<api-id>.execute-api.us-east-1.amazonaws.com/notes \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test Note 1","note":"This is test note 1"}'
 ```
 
-**Example Response:**
+**Example Response (201):**
 ```json
 {
-  "request_id": "630f70c4-815c-41d1-ae52-6babf3a41b1f",
-  "status": "submitted"
+  "id": "2f2d0c5a-9f5f-4d7d-9e2c-1c8a5b8e3c21",
+  "title": "Test Note 1",
+  "note": "This is test note 1"
 }
 ```
-
-**Behavior:**
-- The API immediately returns a unique `request_id` for correlation.  
-- The actual key generation occurs asynchronously in the Lambda worker.  
-- Clients must poll the `/result/{request_id}` endpoint to retrieve the final output.
-
-### GET /result/{request_id}
-
-**Purpose:**  
-Retrieves the result of a previously submitted SSH key generation request.
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|------------|------|-------------|
-| `request_id` | string | Unique ID returned by the `/keygen` call. |
-
-**Example Request:**
-```bash
-curl https://<api-id>.execute-api.us-east-1.amazonaws.com/result/630f70c4-815c-41d1-ae52-6babf3a41b1f
-```
-
-**Example Response (Pending):**
-```json
-{
-  "request_id": "630f70c4-815c-41d1-ae52-6babf3a41b1f",
-  "status": "pending"
-}
-```
-
-**Example Response (Completed):**
-```json
-{
-  "request_id": "630f70c4-815c-41d1-ae52-6babf3a41b1f",
-  "status": "complete",
-  "key_type": "rsa",
-  "key_bits": 2048,
-  "public_key_b64": "LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0tLS0t...",
-  "private_key_b64": "LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQo..."
-}
-```
-
-**Status Values:**
-| Status | Description |
-|---------|--------------|
-| `submitted` | Request accepted and queued for processing. |
-| `pending` | Request is being processed by the Lambda worker. |
-| `complete` | Key generation successful; keypair included in response. |
-| `error` | Request failed; additional error message provided. |
 
 ---
 
-**Notes:**
-- Responses are served directly by Lambda via API Gateway, backed by DynamoDB or SQS polling.  
-- Keys are base64-encoded to ensure transport safety and can be decoded to PEM format for local use.  
-- No state is persisted beyond queue message lifetime, ensuring security and cost efficiency.
+### GET /notes
 
-### Architecture Flow
+**Purpose:**  
+Lists all notes for the demo owner (`"global"`).
 
-```mermaid
-flowchart TD
-    A["User or Web Client"] -->|"HTTPS POST /keygen"| B["API Gateway"]
-    B -->|"Invoke submit Lambda"| C["Lambda Submit Request"]
-    C -->|"Enqueue message"| D["SQS Request Queue"]
-    D -->|"Trigger processor"| E["Lambda KeyGen Processor"]
-    E -->|"Generate SSH keypair"| F["DynamoDB Results Table"]
+**Example Request:**
+```bash
+curl -s https://<api-id>.execute-api.us-east-1.amazonaws.com/notes
+```
 
-    A -->|"HTTPS GET /result/{request_id}"| G["API Gateway"]
-    G -->|"Invoke fetch Lambda"| H["Lambda Fetch Result"]
-    H -->|"Read by request_id"| F
-    H -->|"Return JSON response"| A
+**Example Response (200):**
+```json
+{
+  "items": [
+    {
+      "owner": "global",
+      "id": "2f2d0c5a-9f5f-4d7d-9e2c-1c8a5b8e3c21",
+      "title": "Test Note 1",
+      "note": "This is test note 1",
+      "created_at": "2026-01-19T14:12:09.123456+00:00",
+      "updated_at": "2026-01-19T14:12:09.123456+00:00"
+    }
+  ]
+}
+```
+
+---
+
+### GET /notes/{id}
+
+**Purpose:**  
+Retrieves a single note by ID.
+
+**Example Request:**
+```bash
+curl -s https://<api-id>.execute-api.us-east-1.amazonaws.com/notes/<id>
+```
+
+---
+
+### PUT /notes/{id}
+
+**Purpose:**  
+Updates an existing note.
+
+**Request Body (JSON):**
+```json
+{
+  "title": "Test Note 1",
+  "note": "Updated note"
+}
+```
+
+---
+
+### DELETE /notes/{id}
+
+**Purpose:**  
+Deletes a note by ID.
+
+**Example Request:**
+```bash
+curl -s -X DELETE https://<api-id>.execute-api.us-east-1.amazonaws.com/notes/<id>
 ```
 
 ## Prerequisites
@@ -154,7 +157,6 @@ flowchart TD
 * [An AWS Account](https://aws.amazon.com/console/)
 * [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 * [Install Terraform](https://developer.hashicorp.com/terraform/install)
-* [Install Docker](https://docs.docker.com/engine/install)
 
 If this is your first time following along, we recommend starting with this video:  
 **[AWS + Terraform: Easy Setup](https://www.youtube.com/watch?v=9clW3VQLyxA)** – it walks through configuring your AWS credentials, Terraform backend, and CLI environment.
