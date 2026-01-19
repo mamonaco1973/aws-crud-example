@@ -26,7 +26,7 @@ resource "aws_apigatewayv2_api" "notes_api" {
   protocol_type = "HTTP"
 
   cors_configuration {
-    allow_origins  = ["*"]  # Restrict to domain in production
+    allow_origins  = ["*"] # Restrict to domain in production
     allow_methods  = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     allow_headers  = ["content-type"]
     expose_headers = ["content-type"]
