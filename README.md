@@ -49,6 +49,28 @@ both CLI and browser-based clients.
 > Note: In this simplified demo, the note `owner` is hardcoded to `"global"` in
 > the Lambda handlers.
 
+### API Endpoint Summary
+
+| Method | Path | Purpose | Input | DynamoDB Operation |
+|------|------|--------|------|--------------------|
+| POST | `/notes` | Create a new note | JSON body (`title`, `note`) | `PutItem` |
+| GET | `/notes` | List all notes | None | `Query` (owner = "global") |
+| GET | `/notes/{id}` | Retrieve a single note by ID | Path param (`id`) | `GetItem` |
+| PUT | `/notes/{id}` | Update an existing note | Path param + JSON body | `UpdateItem` |
+| DELETE | `/notes/{id}` | Delete a note by ID | Path param (`id`) | `DeleteItem` |
+
+
+### Request & Response Characteristics
+
+| Aspect | Behavior |
+|-----|--------|
+| Authentication | None (demo-only) |
+| Content Type | `application/json` |
+| Owner Model | Hardcoded to `"global"` |
+| Response Format | JSON |
+| Clients | curl, browser, any HTTP client |
+| Error Handling | Standard HTTP status codes |
+
 ---
 
 ### POST /notes
