@@ -27,12 +27,7 @@ set -euo pipefail
 # Validate that required tools, credentials, and environment variables
 # are present before proceeding with any infrastructure deployment.
 echo "NOTE: Running environment validation..."
-
 ./check_env.sh
-if [ $? -ne 0 ]; then
-  echo "ERROR: Environment validation failed. Exiting."
-  exit 1
-fi
 
 # ------------------------------------------------------------------------------
 # Build Lambda functions and API Gateway
