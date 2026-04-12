@@ -79,7 +79,7 @@ resource "aws_lambda_function" "lambda_create" {
   function_name    = "create-note"
   role             = aws_iam_role.lambda_create_role.arn
   runtime          = "python3.14"
-  handler          = "create.lambda_handler"
+  handler          = "notes.create_handler"
   filename         = data.archive_file.lambdas_zip.output_path
   source_code_hash = data.archive_file.lambdas_zip.output_base64sha256
   timeout          = 15

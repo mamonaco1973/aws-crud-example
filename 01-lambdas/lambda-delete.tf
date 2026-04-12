@@ -79,7 +79,7 @@ resource "aws_lambda_function" "lambda_delete" {
   function_name    = "delete-note"
   role             = aws_iam_role.lambda_delete_role.arn
   runtime          = "python3.14"
-  handler          = "delete.lambda_handler"
+  handler          = "notes.delete_handler"
   filename         = data.archive_file.lambdas_zip.output_path
   source_code_hash = data.archive_file.lambdas_zip.output_base64sha256
   timeout          = 15
