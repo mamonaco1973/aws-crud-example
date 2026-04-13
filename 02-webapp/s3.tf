@@ -92,6 +92,23 @@ resource "aws_s3_object" "index_html" {
 }
 
 # --------------------------------------------------------------------------------
+# RESOURCE: aws_s3_object.favicon
+# --------------------------------------------------------------------------------
+# Description:
+#   Uploads favicon.ico to the S3 bucket so browsers don't generate
+#   404s when requesting the default icon.
+# --------------------------------------------------------------------------------
+resource "aws_s3_object" "favicon" {
+  bucket        = aws_s3_bucket.web_bucket.id
+  key           = "favicon.ico"
+  source        = "${path.module}/favicon.ico"
+  content_type  = "image/x-icon"
+  etag          = filemd5("${path.module}/favicon.ico")
+  cache_control = "no-store, max-age=0"
+  depends_on    = [aws_s3_bucket_policy.public_policy]
+}
+
+# --------------------------------------------------------------------------------
 # DATA: aws_region.current
 # --------------------------------------------------------------------------------
 # Description:
