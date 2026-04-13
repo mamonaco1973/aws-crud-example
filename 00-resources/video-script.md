@@ -26,7 +26,7 @@
 
 [ Highlight browser and S3 bucket ]
 
-"The user opens a static web page — just an HTML file served directly from a public S3 bucket."
+"The user opens a static web page — which is just an HTML file served directly from a public S3 bucket."
 
 [ Highlight API Gateway ]
 
@@ -34,7 +34,7 @@
 
 [ Highlight Lambda functions ]
 
-"Each Lambda handles exactly one thing — POST to create, GET to list, GET by ID to retrieve, PUT to update, DELETE to remove. One function, one job."
+"Each Lambda handles exactly one thing — POST to create, GET to list, GET by ID to retrieve, PUT to update, DELETE to delete.
 
 [ Highlight DynamoDB ]
 
