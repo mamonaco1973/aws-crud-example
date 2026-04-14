@@ -2,19 +2,17 @@
 
 ---
 
-## Introduction
-
 [ Screen recording of the Notes Demo web app — creating, editing, and deleting notes in the browser ]
 
-"Do you need a working serverless API on AWS?
+"Do you need a secure, authenticated serverless API on AWS?"
 
-[ Architecture diagram — walk through it left to right: browser, S3, API Gateway, Lambda, DynamoDB ]
+[ Architecture diagram — highlight flow: browser → Cognito → API Gateway → Lambda → DynamoDB ]
 
-"In this project we build a fully serverless notes API using Lambda, DynamoDB, and API Gateway — all provisioned with Terraform and deployed with a single script."
+"In this project we build a fully serverless notes API using API Gateway, Lambda, and DynamoDB — secured with Cognito and provisioned entirely with Terraform."
 
-[ Terminal running apply.sh — Terraform output flying by, ending with the website URL ]
+[ Terminal running apply.sh — Terraform output, ending with website URL ]
 
-"Follow along and in minutes you'll have a working serverless API running in AWS."
+"Follow along and in minutes you'll have a working, authenticated API running in your own AWS account."
 
 ---
 
@@ -78,7 +76,7 @@
 
 [ AWS Console — API Gateway, notes-api ]
 
-"First — the API Gateway. This is the entry point for every API call."
+"First is the API Gateway. This is the entry point for every API call."
 
 [ Show Routes ]
 
@@ -86,11 +84,12 @@
 
 [ AWS Console — Lambda functions list ]
 
-"Five Lambda functions — one per operation. Each has its own IAM role scoped to only the DynamoDB actions it needs."
+"We have five Lambda functions — one per operation. 
+Each has its own IAM role scoped to only the DynamoDB actions it needs."
 
 [ AWS Console — DynamoDB table, notes ]
 
-"Next — the DynamoDB table. PAY_PER_REQUEST billing, composite key design — owner as the partition key, id as the sort key."
+"Next is the DynamoDB table which is the storage layer for our notes.
 
 [ AWS Console — S3 bucket, static website ]
 
