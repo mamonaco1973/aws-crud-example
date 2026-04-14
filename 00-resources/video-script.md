@@ -30,15 +30,15 @@
 
 [ Highlight API Gateway ]
 
-"The frontend talks to an API Gateway HTTP API. Five routes map to five Lambda functions — one per operation."
+"The frontend talks to an API Gateway HTTP API which is attached to our lambdas."
 
 [ Highlight Lambda functions ]
 
-"Each Lambda handles exactly one thing — POST to create, GET to list, GET by ID to retrieve, PUT to update, DELETE to delete.
+"Each Lambda function handles exactly one thing — POST to create, GET to list, GET by ID to retrieve, PUT to update, DELETE to delete.
 
 [ Highlight DynamoDB ]
 
-"The backend stores data in DynamoDB. Each note is an item with an owner partition key and a UUID sort key. The table runs on PAY_PER_REQUEST — no capacity planning needed."
+"The backend stores data in DynamoDB. Each note is a JSON document, and the lambdas read and write directly to it."
 
 ---
 

@@ -1,6 +1,6 @@
 #AWS #Serverless #AWSLambda #DynamoDB #APIGateway #Terraform #Python #CRUD
 
-*Build a Serverless CRUD API on AWS (Lambda + DynamoDB + API Gateway)*
+*Build a Serverless CRUD API on AWS (API Gateway + DynamoDB)*
 
 Deploy a fully serverless notes API on AWS using Terraform, Lambda, API Gateway, and DynamoDB. The backend runs on five Python Lambda functions — one per HTTP route — routed through an API Gateway HTTP API v2, with a static web frontend served directly from S3.
 
@@ -28,7 +28,7 @@ https://github.com/mamonaco1973/aws-crud-example/blob/main/README.md
 
 TIMESTAMPS
 00:00 Introduction
-00:22 Architecture
-00:51 Build the Code
-01:07 Build Results
-01:39 Demo
+00:17 Architecture
+00:46 Build the Code
+01:02 Build Results
+01:33 Demo
